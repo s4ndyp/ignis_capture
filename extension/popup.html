@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
+  <div class="shell">
+  <div class="main-col">
   <div class="wrap">
     <div class="topline">
       <div>
@@ -48,16 +50,6 @@
       <textarea id="body" placeholder="Notitie…"></textarea>
     </div>
 
-    <div class="field tags-field">
-      <div class="label-row">
-        <label for="tagFilter">Tags uit vault</label>
-        <button type="button" class="secondary compact" id="btnRefreshTags" title="Markdown opnieuw scannen">Vernieuwen</button>
-      </div>
-      <input type="search" id="tagFilter" class="tag-filter" placeholder="Zoek tag…" autocomplete="off" />
-      <p id="tagMeta" class="tag-meta">Nog niet geladen — klik Vernieuwen.</p>
-      <div id="tagChips" class="tag-chips" aria-live="polite"></div>
-    </div>
-
     <div class="row">
       <button type="button" class="primary" id="btnSave">Opslaan</button>
       <button type="button" class="secondary" id="btnTest">Test</button>
@@ -65,6 +57,20 @@
     </div>
 
     <div id="status" class="status" role="status"></div>
+  </div>
+  </div>
+
+  <aside class="tag-panel" aria-label="Tags uit vault">
+    <div class="tag-panel-head">
+      <div class="label-row">
+        <label for="tagFilter">Tags</label>
+        <button type="button" class="secondary compact" id="btnRefreshTags" title="Markdown opnieuw scannen">↻</button>
+      </div>
+      <input type="search" id="tagFilter" class="tag-filter" placeholder="Zoek…" autocomplete="off" />
+      <p id="tagMeta" class="tag-meta">Nog niet geladen.</p>
+    </div>
+    <div id="tagTree" class="tag-tree" role="tree" aria-live="polite"></div>
+  </aside>
   </div>
 
   <div id="folderModal" class="modal" hidden aria-hidden="true">
