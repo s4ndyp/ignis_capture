@@ -187,7 +187,7 @@ async function onPickFolder() {
 
 function updateTagMeta() {
   if (!tagIndex) {
-    els.tagMeta.textContent = "Nog niet geladen — klik Vernieuwen.";
+    els.tagMeta.textContent = "Nog niet geladen.";
     return;
   }
   let msg = `${tagIndex.tags.length} tags uit ${tagIndex.filesScanned} notities`;
