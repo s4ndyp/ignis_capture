@@ -62,9 +62,11 @@ button {
   margin: 0;
   padding: 14px 16px 20px;
   overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.body.is-markdown {
   white-space: pre-wrap;
   word-break: break-word;
   font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
-  font-size: 13px;
-  line-height: 1.5;
 }
