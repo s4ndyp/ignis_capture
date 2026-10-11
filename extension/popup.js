@@ -42,6 +42,13 @@ const els = {
   shortcutsMeta: document.getElementById("shortcutsMeta"),
   shortcutList: document.getElementById("shortcutList"),
   btnRefreshShortcuts: document.getElementById("btnRefreshShortcuts"),
+  btnOpenShortcuts: document.getElementById("btnOpenShortcuts"),
+  shortcutsModal: document.getElementById("shortcutsModal"),
+  shortcutsModalBackdrop: document.getElementById("shortcutsModalBackdrop"),
+  btnCloseShortcutsModal: document.getElementById("btnCloseShortcutsModal"),
+  shortcutsModalMeta: document.getElementById("shortcutsModalMeta"),
+  shortcutsModalLoading: document.getElementById("shortcutsModalLoading"),
+  shortcutsModalError: document.getElementById("shortcutsModalError"),
 };
 
 /** @type {import('./ignis-client.js').CaptureSettings | null} */
@@ -371,6 +378,37 @@ async function refreshTags(force) {
   }
 }
 
+/** @param {import('./notebook-navigator.js').ShortcutListItem} item */
+function snippetForShortcutItem(item) {
+  const s = item.shortcut;
+  if (s.type === "note" || s.type === "folder") {
+    const path = s.path.replace(/\.md$/i, "");
+    return `[[${path}]]`;
+  }
+  if (s.type === "tag") {
+    return `#${s.tagPath} `;
+  }
+  if (s.type === "search") {
+    return (s.query || s.name || "").trim();
+  }
+  if (s.type === "property") {
+    return s.nodeId.startsWith(".") ? s.nodeId : `.${s.nodeId}`;
+  }
+  return item.subtitle;
+}
+
+/** @param {import('./notebook-navigator.js').ShortcutListItem} item */
+function insertShortcutReference(item) {
+  const snippet = snippetForShortcutItem(item);
+  if (!snippet) {
+    setStatus("info", "Geen invoegbare tekst voor deze snelkoppeling.");
+    return;
+  }
+  insertSnippet(snippet.endsWith(" ") ? snippet : snippet + " ");
+  closeShortcutsModal();
+  setStatus("info", `Invoegen: ${snippet.trim()}`);
+}
+
 function renderShortcutList() {
   els.shortcutList.innerHTML = "";
   if (!navigatorShortcuts?.length) {
@@ -378,17 +416,20 @@ function renderShortcutList() {
     hint.className = "empty-hint";
     hint.textContent = navigatorShortcuts
       ? "Geen snelkoppelingen in dit vault-profiel."
-      : "Laad snelkoppelingen via Vernieuwen (Notebook Navigator).";
+      : "Kon snelkoppelingen niet laden — probeer Vernieuwen.";
     els.shortcutList.appendChild(hint);
     return;
   }
 
   for (const item of navigatorShortcuts) {
+    const row = document.createElement("div");
+    row.className = "shortcut-row";
+
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "shortcut-item";
     const num = item.index + 1;
-    btn.title = `${item.label}\n${item.subtitle}`;
+    btn.title = `Invoegen in notitie: ${snippetForShortcutItem(item).trim()}`;
 
     const numEl = document.createElement("span");
     numEl.className = "shortcut-num" + (num <= 9 ? " hotkey" : "");
@@ -409,8 +450,51 @@ function renderShortcutList() {
     kind.textContent = shortcutKindLabel(item.kind);
 
     btn.append(numEl, body, kind);
-    btn.addEventListener("click", () => onOpenShortcut(item));
-    els.shortcutList.appendChild(btn);
+    btn.addEventListener("click", () => insertShortcutReference(item));
+
+    const openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "shortcut-open-ignis";
+    openBtn.title = "Open in Ignis / Obsidian";
+    openBtn.textContent = "↗";
+    openBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void onOpenShortcutInIgnis(item);
+    });
+
+    row.append(btn, openBtn);
+    els.shortcutList.appendChild(row);
+  }
+}
+
+function openShortcutsModal() {
+  els.shortcutsModal.hidden = false;
+  els.shortcutsModal.setAttribute("aria-hidden", "false");
+  if (!navigatorShortcuts && !shortcutsLoading) {
+    void refreshNavigatorShortcuts(true);
+  } else {
+    renderShortcutList();
+  }
+}
+
+function closeShortcutsModal() {
+  els.shortcutsModal.hidden = true;
+  els.shortcutsModal.setAttribute("aria-hidden", "true");
+  els.shortcutsModalError.hidden = true;
+  els.shortcutsModalLoading.hidden = true;
+}
+
+function updateShortcutsSummary(profileLabel, count) {
+  const label = profileLabel ? `profiel “${profileLabel}”` : "Notebook Navigator";
+  if (count === null) {
+    els.shortcutsMeta.textContent = "Niet geladen";
+    return;
+  }
+  els.shortcutsMeta.textContent =
+    count === 0 ? `${label} · geen` : `${count} in ${label}`;
+  if (els.shortcutsModalMeta) {
+    els.shortcutsModalMeta.textContent =
+      `${count} snelkoppelingen · ${label}. Klik om in te voegen in de notitie. ↗ opent in Ignis.`;
   }
 }
 
@@ -424,7 +508,12 @@ async function refreshNavigatorShortcuts(force) {
 
   shortcutsLoading = true;
   els.btnRefreshShortcuts.disabled = true;
-  els.shortcutsMeta.textContent = "Snelkoppelingen laden…";
+  updateShortcutsSummary("", null);
+  els.shortcutsMeta.textContent = "Laden…";
+  if (!els.shortcutsModal.hidden) {
+    els.shortcutsModalLoading.hidden = false;
+    els.shortcutsModalError.hidden = true;
+  }
 
   try {
     const profileOverride = (settings.notebookNavigatorProfile || "").trim();
@@ -433,30 +522,32 @@ async function refreshNavigatorShortcuts(force) {
     );
     navigatorShortcuts = data.shortcuts;
     const profileLabel = data.profileName || data.profileId;
-    els.shortcutsMeta.textContent =
-      `${data.shortcuts.length} snelkoppelingen · profiel “${profileLabel}”` +
-      (data.shortcuts.some((_, i) => i < 9)
-        ? " · 1–9 openen via Notebook Navigator in Ignis"
-        : "");
+    updateShortcutsSummary(profileLabel, data.shortcuts.length);
     renderShortcutList();
   } catch (e) {
     navigatorShortcuts = null;
-    els.shortcutsMeta.textContent = "Snelkoppelingen niet geladen.";
+    updateShortcutsSummary("", null);
+    els.shortcutsMeta.textContent = "Fout bij laden";
     renderShortcutList();
+    if (!els.shortcutsModal.hidden) {
+      els.shortcutsModalError.hidden = false;
+      els.shortcutsModalError.textContent = formatError(e);
+    }
     if (force) setStatus("err", formatError(e));
   } finally {
     shortcutsLoading = false;
     els.btnRefreshShortcuts.disabled = false;
+    els.shortcutsModalLoading.hidden = true;
   }
 }
 
 /** @param {import('./notebook-navigator.js').ShortcutListItem} item */
-async function onOpenShortcut(item) {
+async function onOpenShortcutInIgnis(item) {
   clearStatus();
   setBusy(true);
   try {
     const result = await withPermission((s) => openNavigatorShortcutItem(s, item));
-    setStatus("ok", `Geopend (${result.mode}): ${result.detail}`);
+    setStatus("ok", `Ignis (${result.mode}): ${result.detail}`);
   } catch (e) {
     setStatus("err", formatError(e));
   } finally {
@@ -557,6 +648,9 @@ els.btnResetFolder.addEventListener("click", () => {
 els.btnInsertTask.addEventListener("click", insertTaskLine);
 els.btnRefreshTags.addEventListener("click", () => refreshTags(true));
 els.btnRefreshShortcuts.addEventListener("click", () => refreshNavigatorShortcuts(true));
+els.btnOpenShortcuts.addEventListener("click", openShortcutsModal);
+els.btnCloseShortcutsModal.addEventListener("click", closeShortcutsModal);
+els.shortcutsModalBackdrop.addEventListener("click", closeShortcutsModal);
 els.tagFilter.addEventListener("input", renderTagTree);
 els.btnCloseFolderModal.addEventListener("click", closeFolderModal);
 els.folderModalBackdrop.addEventListener("click", closeFolderModal);

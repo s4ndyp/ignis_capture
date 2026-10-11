@@ -19,14 +19,11 @@
     </div>
 
     <div class="field shortcuts-field">
-      <div class="label-row">
-        <label>Notebook Navigator</label>
-        <button type="button" class="secondary compact" id="btnRefreshShortcuts" title="data.json opnieuw laden">
-          Vernieuwen
-        </button>
+      <label>Notebook Navigator</label>
+      <div class="save-loc-row">
+        <button type="button" class="secondary compact" id="btnOpenShortcuts">Snelkoppelingen…</button>
+        <span id="shortcutsMeta" class="shortcuts-summary">Laden…</span>
       </div>
-      <p id="shortcutsMeta" class="tag-meta">Snelkoppelingen laden…</p>
-      <div id="shortcutList" class="shortcut-list" aria-live="polite"></div>
     </div>
 
     <div class="field save-loc">
@@ -71,6 +68,25 @@
     </div>
     <div id="tagTree" class="tag-tree" role="tree" aria-live="polite"></div>
   </aside>
+  </div>
+
+  <div id="shortcutsModal" class="modal" hidden aria-hidden="true">
+    <div class="modal-backdrop" id="shortcutsModalBackdrop"></div>
+    <div class="modal-panel modal-panel-wide" role="dialog" aria-labelledby="shortcutsModalTitle">
+      <div class="modal-header">
+        <h2 id="shortcutsModalTitle">Snelkoppelingen</h2>
+        <div class="modal-header-actions">
+          <button type="button" class="secondary compact" id="btnRefreshShortcuts" title="data.json opnieuw laden">
+            Vernieuwen
+          </button>
+          <button type="button" class="icon-btn" id="btnCloseShortcutsModal" aria-label="Sluiten">×</button>
+        </div>
+      </div>
+      <p id="shortcutsModalMeta" class="modal-hint">Klik om te invoegen in de notitie. ↗ opent in Ignis.</p>
+      <div id="shortcutsModalLoading" class="tree-loading" hidden>Laden…</div>
+      <div id="shortcutsModalError" class="tree-error" hidden></div>
+      <div id="shortcutList" class="shortcut-list" aria-live="polite"></div>
+    </div>
   </div>
 
   <div id="folderModal" class="modal" hidden aria-hidden="true">
