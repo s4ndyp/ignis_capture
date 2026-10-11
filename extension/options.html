@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ignis Capture — Instellingen</title>
+  <link rel="stylesheet" href="popup.css" />
+  <style>
+    body { width: auto; max-width: 32rem; margin: 0 auto; max-height: none; }
+    select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 10px;
+      font: inherit;
+    }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 16px; line-height: 1.5; }
+    code { background: #333; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
+    .section { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .section:last-of-type { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Instellingen</h1>
+    <p class="sub">Direct naar Ignis (standaard) of fallback via je Docker capture-proxy.</p>
+
+    <form id="form">
+      <div class="section field">
+        <label for="connectionMode">Verbinding</label>
+        <select id="connectionMode" name="connectionMode">
+          <option value="direct">Rechtstreeks naar Ignis API</option>
+          <option value="proxy">Via Docker capture (/ignis-api)</option>
+        </select>
+      </div>
+
+      <div class="section field" id="ignisFields">
+        <label for="ignisBaseUrl">Ignis URL (zonder trailing slash)</label>
+        <input type="text" id="ignisBaseUrl" name="ignisBaseUrl" placeholder="https://10.5.0.134" />
+      </div>
+
+      <div class="section field" id="proxyFields" hidden>
+        <label for="proxyBaseUrl">Capture-server URL</label>
+        <input type="text" id="proxyBaseUrl" name="proxyBaseUrl" placeholder="http://localhost:8080" />
+      </div>
+
+      <div class="section field">
+        <label for="vaultId">Vault</label>
+        <input type="text" id="vaultId" name="vaultId" />
+      </div>
+
+      <div class="field">
+        <label for="folder">Map in vault</label>
+        <input type="text" id="folder" name="folder" />
+      </div>
+
+      <div class="section field">
+        <label for="notebookNavigatorProfile">Notebook Navigator-profiel (optioneel)</label>
+        <input
+          type="text"
+          id="notebookNavigatorProfile"
+          name="notebookNavigatorProfile"
+          placeholder="Leeg = actief profiel uit data.json"
+        />
+      </div>
+
+      <div class="row">
+        <button type="submit" class="primary">Opslaan</button>
+        <button type="button" class="secondary" id="btnRequestPerm">Host-permissie</button>
+      </div>
+    </form>
+
+    <div id="status" class="status" role="status"></div>
+
+    <p class="hint">
+      <strong>Direct:</strong> extensie roept <code>/api/fs/writeFile</code> op Ignis aan. Chrome vraagt
+      toestemming voor die host (<code>host_permissions</code> / optional). Bij self-signed HTTPS: open Ignis
+      eerst in een normale tab en accepteer het certificaat.<br /><br />
+      <strong>Docker proxy:</strong> zelfde als de web-app — URL van je <code>docker compose</code> service,
+      pad <code>/ignis-api/</code> wordt automatisch gebruikt.<br /><br />
+      <strong>Snelkoppelingen:</strong> posities 1–9 worden in Ignis geopend via het commando
+      <code>Notebook Navigator: Open shortcut N</code> (map/tag/zoek/notitie). Notities op positie 10+ openen via
+      Ignis-URL.<br /><br />
+      Laden: <code>chrome://extensions</code> → Ontwikkelaarsmodus → Uitgepakt laden → map <code>extension/</code>.
+    </p>
+  </div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>
