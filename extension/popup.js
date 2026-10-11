@@ -6,6 +6,7 @@ import {
   formatFolderLabel,
 } from "./ignis-client.js";
 import { buildVaultTagIndex } from "./tag-index.js";
+import { buildTagTree, filterTagTree } from "./tag-tree.js";
 import { loadTagIndexCache, saveTagIndexCache, isTagCacheStale } from "./tag-cache.js";
 import { loadSettings } from "./settings-store.js";
 import { ensurePermissionsForSettings } from "./permissions.js";
@@ -35,7 +36,7 @@ const els = {
   folderTreeLoading: document.getElementById("folderTreeLoading"),
   folderTreeError: document.getElementById("folderTreeError"),
   tagFilter: document.getElementById("tagFilter"),
-  tagChips: document.getElementById("tagChips"),
+  tagTree: document.getElementById("tagTree"),
   tagMeta: document.getElementById("tagMeta"),
   btnRefreshTags: document.getElementById("btnRefreshTags"),
   shortcutsMeta: document.getElementById("shortcutsMeta"),
@@ -52,6 +53,9 @@ let saveFolder = "";
 /** @type {import('./tag-cache.js').TagIndexCache | null} */
 let tagIndex = null;
 let tagsLoading = false;
+/** @type {Set<string>} collapsed tag paths (children hidden) */
+const collapsedTagPaths = new Set();
+let tagTreeCollapseDefaultsApplied = false;
 /** @type {import('./notebook-navigator.js').ShortcutListItem[] | null} */
 let navigatorShortcuts = null;
 let shortcutsLoading = false;
@@ -183,7 +187,7 @@ async function onPickFolder() {
 
 function updateTagMeta() {
   if (!tagIndex) {
-    els.tagMeta.textContent = "Nog niet geladen — klik Vernieuwen.";
+    els.tagMeta.textContent = "Nog niet geladen.";
     return;
   }
   let msg = `${tagIndex.tags.length} tags uit ${tagIndex.filesScanned} notities`;
@@ -194,29 +198,111 @@ function updateTagMeta() {
   els.tagMeta.textContent = msg;
 }
 
-function renderTagChips() {
-  els.tagChips.innerHTML = "";
-  const filter = els.tagFilter.value.trim().toLowerCase();
-  const list = (tagIndex?.tags || [])
-    .filter((entry) => !filter || entry.tag.toLowerCase().includes(filter))
-    .slice(0, 100);
-
-  if (!list.length) {
+function renderTagTree() {
+  els.tagTree.innerHTML = "";
+  const filter = els.tagFilter.value.trim();
+  const entries = tagIndex?.tags || [];
+  if (!entries.length) {
     const hint = document.createElement("p");
     hint.className = "empty-hint";
-    hint.textContent = tagIndex ? "Geen tags voor deze zoekterm." : "Scan de vault om tags te tonen.";
-    els.tagChips.appendChild(hint);
+    hint.textContent = tagIndex ? "Geen tags in vault." : "Scan via ↻ of open opnieuw.";
+    els.tagTree.appendChild(hint);
     return;
   }
 
-  for (const { tag, count } of list) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = count > 1 ? `#${tag} (${count})` : `#${tag}`;
-    btn.title = `Invoegen als #${tag} (${count}× in vault)`;
-    btn.addEventListener("click", () => insertTag(tag));
-    els.tagChips.appendChild(btn);
+  const roots = buildTagTree(entries);
+  if (!tagTreeCollapseDefaultsApplied) {
+    for (const node of roots) {
+      if (node.children.length) collapsedTagPaths.add(node.fullPath);
+    }
+    tagTreeCollapseDefaultsApplied = true;
   }
+  const visible = filterTagTree(roots, filter);
+  if (!visible.length) {
+    const hint = document.createElement("p");
+    hint.className = "empty-hint";
+    hint.textContent = "Geen tags voor deze zoekterm.";
+    els.tagTree.appendChild(hint);
+    return;
+  }
+
+  const list = document.createElement("ul");
+  list.className = "tag-tree-group";
+  list.setAttribute("role", "group");
+  for (const node of visible) {
+    list.appendChild(renderTagTreeNode(node, 0, Boolean(filter)));
+  }
+  els.tagTree.appendChild(list);
+}
+
+/**
+ * @param {import('./tag-tree.js').TagTreeNode} node
+ * @param {number} depth
+ * @param {boolean} filterActive
+ */
+function renderTagTreeNode(node, depth, filterActive) {
+  const li = document.createElement("li");
+  li.setAttribute("role", "treeitem");
+  li.setAttribute("aria-level", String(depth + 1));
+
+  const hasChildren = node.children.length > 0;
+  const expanded = filterActive || !collapsedTagPaths.has(node.fullPath);
+
+  const row = document.createElement("div");
+  row.className = "tag-tree-row";
+  row.style.paddingLeft = `${8 + depth * 14}px`;
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "tag-tree-toggle" + (hasChildren ? "" : " placeholder");
+  toggle.setAttribute("aria-label", hasChildren ? (expanded ? "Inklappen" : "Uitklappen") : "");
+  toggle.textContent = hasChildren ? (expanded ? "▼" : "▶") : "·";
+  if (hasChildren) {
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (collapsedTagPaths.has(node.fullPath)) {
+        collapsedTagPaths.delete(node.fullPath);
+      } else {
+        collapsedTagPaths.add(node.fullPath);
+      }
+      renderTagTree();
+    });
+  }
+
+  const pick = document.createElement("button");
+  pick.type = "button";
+  pick.className = "tag-tree-pick" + (node.count === 0 && hasChildren ? " is-parent-only" : "");
+  pick.title = node.count
+    ? `Invoegen #${node.fullPath} (${node.count}×)`
+    : `Map #${node.fullPath} — klik om volledige tag in te voegen`;
+  const seg = document.createElement("span");
+  seg.className = "seg";
+  seg.textContent = `#${node.segment}`;
+  pick.appendChild(seg);
+  if (node.count > 0) {
+    const cnt = document.createElement("span");
+    cnt.className = "cnt";
+    cnt.textContent = `(${node.count})`;
+    pick.appendChild(cnt);
+  }
+  pick.addEventListener("click", () => insertTag(node.fullPath));
+
+  row.append(toggle, pick);
+  li.appendChild(row);
+
+  if (hasChildren) {
+    li.setAttribute("aria-expanded", expanded ? "true" : "false");
+    const childList = document.createElement("ul");
+    childList.className = "tag-tree-children tag-tree-group";
+    childList.hidden = !expanded;
+    childList.setAttribute("role", "group");
+    for (const child of node.children) {
+      childList.appendChild(renderTagTreeNode(child, depth + 1, filterActive));
+    }
+    li.appendChild(childList);
+  }
+
+  return li;
 }
 
 function insertTag(tag) {
@@ -258,7 +344,7 @@ async function refreshTags(force) {
     if (cached?.tags) {
       tagIndex = cached;
       updateTagMeta();
-      renderTagChips();
+      renderTagTree();
       if (!isTagCacheStale(cached)) return;
     }
   }
@@ -274,7 +360,7 @@ async function refreshTags(force) {
     );
     await saveTagIndexCache(vault, tagIndex);
     updateTagMeta();
-    renderTagChips();
+    renderTagTree();
     setStatus("ok", `${tagIndex.tags.length} tags gevonden in vault.`);
   } catch (e) {
     els.tagMeta.textContent = "Tag-scan mislukt.";
@@ -471,7 +557,7 @@ els.btnResetFolder.addEventListener("click", () => {
 els.btnInsertTask.addEventListener("click", insertTaskLine);
 els.btnRefreshTags.addEventListener("click", () => refreshTags(true));
 els.btnRefreshShortcuts.addEventListener("click", () => refreshNavigatorShortcuts(true));
-els.tagFilter.addEventListener("input", renderTagChips);
+els.tagFilter.addEventListener("input", renderTagTree);
 els.btnCloseFolderModal.addEventListener("click", closeFolderModal);
 els.folderModalBackdrop.addEventListener("click", closeFolderModal);
 els.openOptions.addEventListener("click", (e) => {
