@@ -356,16 +356,39 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
 .shortcuts-field {
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.shortcuts-summary {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modal-panel-wide {
+  max-width: 420px;
+  max-height: min(520px, 88vh);
+}
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .shortcut-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 140px;
   overflow-y: auto;
+  flex: 1;
+  min-height: 160px;
+  padding: 0 10px 10px;
+}
+.shortcut-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
 }
 .shortcut-list .empty-hint {
   font-size: 11px;
@@ -376,7 +399,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -432,4 +456,19 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 2px 4px;
+}
+.shortcut-open-ignis {
+  flex: 0 0 auto;
+  width: 2rem;
+  padding: 6px 0;
+  font-size: 14px;
+  line-height: 1;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.shortcut-open-ignis:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
 }
