@@ -168,6 +168,9 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   justify-content: center;
   padding: 12px 8px;
 }
+.modal-front {
+  z-index: 110;
+}
 .modal-backdrop {
   position: absolute;
   inset: 0;
@@ -188,11 +191,12 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 .modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 .modal-header h2 {
   margin: 0;
@@ -370,6 +374,44 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .modal-panel-wide {
   max-width: 420px;
   max-height: min(520px, 88vh);
+}
+.modal-panel-preview {
+  max-width: min(640px, 96vw);
+  width: 100%;
+  max-height: min(560px, 90vh);
+}
+.preview-titles {
+  min-width: 0;
+  flex: 1;
+}
+.preview-titles h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview-path {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+  word-break: break-all;
+  line-height: 1.3;
+}
+.preview-body {
+  flex: 1;
+  margin: 0;
+  padding: 10px 12px 12px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  min-height: 200px;
+  max-height: min(420px, 55vh);
 }
 .modal-header-actions {
   display: flex;
