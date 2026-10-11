@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ignis Capture</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="topline">
+      <div>
+        <h1>Ignis Capture <span id="modeBadge" class="mode-badge">direct</span></h1>
+        <p class="sub">Notities naar Ignis · Notebook Navigator-snelkoppelingen</p>
+      </div>
+      <a href="#" id="openOptions">Instellingen</a>
+    </div>
+
+    <div class="field shortcuts-field">
+      <div class="label-row">
+        <label>Notebook Navigator</label>
+        <button type="button" class="secondary compact" id="btnRefreshShortcuts" title="data.json opnieuw laden">
+          Vernieuwen
+        </button>
+      </div>
+      <p id="shortcutsMeta" class="tag-meta">Snelkoppelingen laden…</p>
+      <div id="shortcutList" class="shortcut-list" aria-live="polite"></div>
+    </div>
+
+    <div class="field save-loc">
+      <label>Opslaglocatie</label>
+      <div class="save-loc-row">
+        <code id="saveFolder" class="save-folder-label" title="Map voor deze notitie">Inbox</code>
+        <button type="button" class="secondary compact" id="btnPickFolder">Kies map…</button>
+        <button type="button" class="secondary compact" id="btnResetFolder" title="Terug naar standaardmap uit instellingen">Reset</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="title">Titel</label>
+      <input type="text" id="title" placeholder="Onderwerp" autofocus />
+    </div>
+    <div class="field">
+      <div class="label-row">
+        <label for="body">Inhoud</label>
+        <button type="button" class="secondary compact" id="btnInsertTask">+ Taak</button>
+      </div>
+      <textarea id="body" placeholder="Notitie…"></textarea>
+    </div>
+
+    <div class="field tags-field">
+      <div class="label-row">
+        <label for="tagFilter">Tags uit vault</label>
+        <button type="button" class="secondary compact" id="btnRefreshTags" title="Markdown opnieuw scannen">Vernieuwen</button>
+      </div>
+      <input type="search" id="tagFilter" class="tag-filter" placeholder="Zoek tag…" autocomplete="off" />
+      <p id="tagMeta" class="tag-meta">Nog niet geladen — klik Vernieuwen.</p>
+      <div id="tagChips" class="tag-chips" aria-live="polite"></div>
+    </div>
+
+    <div class="row">
+      <button type="button" class="primary" id="btnSave">Opslaan</button>
+      <button type="button" class="secondary" id="btnTest">Test</button>
+      <button type="button" class="secondary" id="btnPing">Verbinding</button>
+    </div>
+
+    <div id="status" class="status" role="status"></div>
+  </div>
+
+  <div id="folderModal" class="modal" hidden aria-hidden="true">
+    <div class="modal-backdrop" id="folderModalBackdrop"></div>
+    <div class="modal-panel" role="dialog" aria-labelledby="folderModalTitle">
+      <div class="modal-header">
+        <h2 id="folderModalTitle">Kies map</h2>
+        <button type="button" class="icon-btn" id="btnCloseFolderModal" aria-label="Sluiten">×</button>
+      </div>
+      <p class="modal-hint">Klik een map om die als opslaglocatie te gebruiken.</p>
+      <div id="folderTreeLoading" class="tree-loading" hidden>Vault laden…</div>
+      <div id="folderTreeError" class="tree-error" hidden></div>
+      <ul id="folderTree" class="folder-tree" tabindex="0"></ul>
+    </div>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
