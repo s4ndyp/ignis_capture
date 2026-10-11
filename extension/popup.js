@@ -15,6 +15,7 @@ import {
   shortcutKindLabel,
 } from "./notebook-navigator.js";
 import { openNavigatorShortcutItem } from "./shortcut-opener.js";
+import { fetchShortcutFileContent } from "./shortcut-file.js";
 
 const els = {
   modeBadge: document.getElementById("modeBadge"),
@@ -49,7 +50,19 @@ const els = {
   shortcutsModalMeta: document.getElementById("shortcutsModalMeta"),
   shortcutsModalLoading: document.getElementById("shortcutsModalLoading"),
   shortcutsModalError: document.getElementById("shortcutsModalError"),
+  previewModal: document.getElementById("previewModal"),
+  previewModalBackdrop: document.getElementById("previewModalBackdrop"),
+  btnClosePreviewModal: document.getElementById("btnClosePreviewModal"),
+  btnPreviewPopout: document.getElementById("btnPreviewPopout"),
+  previewModalTitle: document.getElementById("previewModalTitle"),
+  previewModalPath: document.getElementById("previewModalPath"),
+  previewBody: document.getElementById("previewBody"),
+  previewLoading: document.getElementById("previewLoading"),
+  previewError: document.getElementById("previewError"),
 };
+
+/** @type {{ path: string, title: string } | null} */
+let lastPreviewFile = null;
 
 /** @type {import('./ignis-client.js').CaptureSettings | null} */
 let settings = null;
@@ -378,35 +391,74 @@ async function refreshTags(force) {
   }
 }
 
-/** @param {import('./notebook-navigator.js').ShortcutListItem} item */
-function snippetForShortcutItem(item) {
-  const s = item.shortcut;
-  if (s.type === "note" || s.type === "folder") {
-    const path = s.path.replace(/\.md$/i, "");
-    return `[[${path}]]`;
-  }
-  if (s.type === "tag") {
-    return `#${s.tagPath} `;
-  }
-  if (s.type === "search") {
-    return (s.query || s.name || "").trim();
-  }
-  if (s.type === "property") {
-    return s.nodeId.startsWith(".") ? s.nodeId : `.${s.nodeId}`;
-  }
-  return item.subtitle;
+function openPreviewModalShell(title, path) {
+  els.previewModal.hidden = false;
+  els.previewModal.setAttribute("aria-hidden", "false");
+  els.previewModalTitle.textContent = title;
+  els.previewModalPath.textContent = path || "";
+  els.previewBody.textContent = "";
+  els.previewError.hidden = true;
+  els.previewLoading.hidden = false;
+  lastPreviewFile = path ? { path, title } : null;
+  els.btnPreviewPopout.disabled = !path;
+}
+
+function closePreviewModal() {
+  els.previewModal.hidden = true;
+  els.previewModal.setAttribute("aria-hidden", "true");
+  els.previewLoading.hidden = true;
+  els.previewError.hidden = true;
+}
+
+function showNonFileShortcutPreview(item) {
+  openPreviewModalShell(item.label, item.subtitle);
+  els.previewLoading.hidden = true;
+  els.previewBody.textContent =
+    `Dit is een ${shortcutKindLabel(item.kind)}-snelkoppeling, geen enkel Markdown-bestand.\n\n` +
+    `${item.subtitle}\n\n` +
+    "Gebruik ↗ om de weergave in Ignis / Notebook Navigator te openen.";
+  lastPreviewFile = null;
+  els.btnPreviewPopout.disabled = true;
 }
 
 /** @param {import('./notebook-navigator.js').ShortcutListItem} item */
-function insertShortcutReference(item) {
-  const snippet = snippetForShortcutItem(item);
-  if (!snippet) {
-    setStatus("info", "Geen invoegbare tekst voor deze snelkoppeling.");
-    return;
+async function previewShortcutItem(item) {
+  clearStatus();
+  openPreviewModalShell(item.label, "");
+  try {
+    const result = await withPermission((s) => fetchShortcutFileContent(s, item));
+    if (result.kind === "non-file") {
+      showNonFileShortcutPreview(item);
+      return;
+    }
+    els.previewLoading.hidden = true;
+    els.previewModalPath.textContent = result.path;
+    els.previewBody.textContent = result.content;
+    lastPreviewFile = { path: result.path, title: result.title };
+    els.btnPreviewPopout.disabled = false;
+  } catch (e) {
+    els.previewLoading.hidden = true;
+    els.previewError.hidden = false;
+    els.previewError.textContent = formatError(e);
+    els.previewBody.textContent = "";
+    lastPreviewFile = null;
+    els.btnPreviewPopout.disabled = true;
   }
-  insertSnippet(snippet.endsWith(" ") ? snippet : snippet + " ");
-  closeShortcutsModal();
-  setStatus("info", `Invoegen: ${snippet.trim()}`);
+}
+
+function popOutLastPreview() {
+  if (!lastPreviewFile) return;
+  const q = new URLSearchParams({
+    path: lastPreviewFile.path,
+    title: lastPreviewFile.title,
+  });
+  const url = chrome.runtime.getURL(`viewer.html?${q.toString()}`);
+  chrome.windows.create({
+    url,
+    type: "popup",
+    width: 780,
+    height: 720,
+  });
 }
 
 function renderShortcutList() {
@@ -429,7 +481,7 @@ function renderShortcutList() {
     btn.type = "button";
     btn.className = "shortcut-item";
     const num = item.index + 1;
-    btn.title = `Invoegen in notitie: ${snippetForShortcutItem(item).trim()}`;
+    btn.title = `Voorbeeld laden via Ignis: ${item.subtitle}`;
 
     const numEl = document.createElement("span");
     numEl.className = "shortcut-num" + (num <= 9 ? " hotkey" : "");
@@ -450,7 +502,7 @@ function renderShortcutList() {
     kind.textContent = shortcutKindLabel(item.kind);
 
     btn.append(numEl, body, kind);
-    btn.addEventListener("click", () => insertShortcutReference(item));
+    btn.addEventListener("click", () => previewShortcutItem(item));
 
     const openBtn = document.createElement("button");
     openBtn.type = "button";
@@ -494,7 +546,7 @@ function updateShortcutsSummary(profileLabel, count) {
     count === 0 ? `${label} · geen` : `${count} in ${label}`;
   if (els.shortcutsModalMeta) {
     els.shortcutsModalMeta.textContent =
-      `${count} snelkoppelingen · ${label}. Klik om in te voegen in de notitie. ↗ opent in Ignis.`;
+      `${count} snelkoppelingen · ${label}. Klik laadt de notitie via Ignis. ↗ opent Ignis.`;
   }
 }
 
@@ -651,6 +703,9 @@ els.btnRefreshShortcuts.addEventListener("click", () => refreshNavigatorShortcut
 els.btnOpenShortcuts.addEventListener("click", openShortcutsModal);
 els.btnCloseShortcutsModal.addEventListener("click", closeShortcutsModal);
 els.shortcutsModalBackdrop.addEventListener("click", closeShortcutsModal);
+els.btnClosePreviewModal.addEventListener("click", closePreviewModal);
+els.previewModalBackdrop.addEventListener("click", closePreviewModal);
+els.btnPreviewPopout.addEventListener("click", popOutLastPreview);
 els.tagFilter.addEventListener("input", renderTagTree);
 els.btnCloseFolderModal.addEventListener("click", closeFolderModal);
 els.folderModalBackdrop.addEventListener("click", closeFolderModal);
