@@ -1,6 +1,5 @@
 import { activeBaseUrl } from "./permissions.js";
-import { buildIgnisFileUrl } from "./ignis-client.js";
-import { resolveFolderNotePath } from "./shortcut-file.js";
+import { buildIgnisFileUrl, notePathExists } from "./ignis-client.js";
 
 const NN_COMMAND_PREFIX = "notebook-navigator:open-shortcut-";
 const LOAD_TIMEOUT_MS = 90000;
@@ -78,6 +77,26 @@ export async function openNavigatorShortcutItem(settings, item) {
     detail:
       "Tag/zoek/property-snelkoppelingen boven positie 9: open Ignis en gebruik Notebook Navigator.",
   };
+}
+
+/** @param {import('./ignis-client.js').CaptureSettings} settings @param {string} folderPath */
+async function resolveFolderNotePath(settings, folderPath) {
+  const folder = folderPath.replace(/^\/+|\/+$/g, "");
+  if (!folder) return null;
+
+  const name = folder.split("/").pop() || folder;
+  const candidates = [
+    `${folder}/${name}.md`,
+    `${folder}.md`,
+    `${folder}/index.md`,
+  ];
+
+  for (const path of candidates) {
+    if (await notePathExists(settings, path)) {
+      return path;
+    }
+  }
+  return null;
 }
 
 /** @param {number} tabId */
