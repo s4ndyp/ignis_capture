@@ -4,7 +4,7 @@ export const DEFAULT_SETTINGS = {
   ignisBaseUrl: "https://10.5.0.134",
   connectionMode: "direct",
   proxyBaseUrl: "http://localhost:8080",
-  vaultId: "My Vault",
+  vaultId: "xdio",
   folder: "Inbox",
   notebookNavigatorProfile: "",
 };

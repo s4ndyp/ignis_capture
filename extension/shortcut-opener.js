@@ -52,9 +52,10 @@ export async function openNavigatorShortcutItem(settings, item) {
 
   const shortcut = item.shortcut;
   if (shortcut.type === "note") {
-    const url = buildIgnisFileUrl(settings, shortcut.path);
+    const filePath = await resolveNoteOrBasePath(settings, shortcut.path);
+    const url = buildIgnisFileUrl(settings, filePath);
     await chrome.tabs.create({ url, active: true });
-    return { mode: "file", detail: shortcut.path };
+    return { mode: "file", detail: filePath };
   }
 
   if (shortcut.type === "folder") {
@@ -77,6 +78,21 @@ export async function openNavigatorShortcutItem(settings, item) {
     detail:
       "Tag/zoek/property-snelkoppelingen boven positie 9: open Ignis en gebruik Notebook Navigator.",
   };
+}
+
+/** @param {import('./ignis-client.js').CaptureSettings} settings @param {string} notePath */
+async function resolveNoteOrBasePath(settings, notePath) {
+  const p = notePath.trim().replace(/^\/+/, "");
+  const candidates = [p];
+  if (!/\.(md|base)$/i.test(p)) {
+    candidates.push(`${p}.md`, `${p}.base`);
+  }
+  for (const path of candidates) {
+    if (await notePathExists(settings, path)) {
+      return path;
+    }
+  }
+  return p;
 }
 
 /** @param {import('./ignis-client.js').CaptureSettings} settings @param {string} folderPath */
