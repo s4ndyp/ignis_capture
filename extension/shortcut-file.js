@@ -5,15 +5,10 @@ export function notePathCandidates(notePath) {
   const p = notePath.trim().replace(/^\/+/, "");
   if (!p) return [];
   const candidates = [p];
-  if (!/\.(md|base)$/i.test(p)) {
-    candidates.push(`${p}.md`, `${p}.base`);
+  if (!/\.md$/i.test(p)) {
+    candidates.push(`${p}.md`);
   }
   return candidates;
-}
-
-/** @param {string} path */
-export function isBaseVaultPath(path) {
-  return /\.base$/i.test(path);
 }
 
 /** @param {import('./ignis-client.js').CaptureSettings} settings @param {string} folderPath */
@@ -71,8 +66,5 @@ export async function fetchShortcutFileContent(settings, item) {
     return { kind: "non-file", item };
   }
   const content = await readVaultText(settings, path);
-  if (isBaseVaultPath(path)) {
-    return { kind: "base", path, content, title: item.label };
-  }
-  return { kind: "markdown", path, content, title: item.label };
+  return { kind: "file", path, content, title: item.label };
 }

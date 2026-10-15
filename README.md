@@ -6,10 +6,7 @@ Chrome-extensie om snel notities in Obsidian op te slaan via [Ignis](https://git
 
 - **Quick capture** — titel, inhoud, mapkeuze, tags uit de vault, taakregels
 - **Ignis API** — direct naar je Ignis-server of via een Docker capture-proxy (`/ignis-api`)
-- **Notebook Navigator** — snelkoppelingen in een modal; klik laadt via Ignis:
-  - **Markdown** — tekst preview
-  - **Obsidian Bases** (`.base`) — tabelweergave met filters/kolommen (subset van Bases-syntax; geen formules)
-- **↗** opent Ignis; **Venster** voor grotere preview
+- **Notebook Navigator** — snelkoppelingen in een modal; klik **haalt het Markdown-bestand op via Ignis** en toont het in een voorbeeld (modal of apart **Venster**). **↗** opent Ignis.
 
 ## Installatie
 
