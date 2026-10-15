@@ -404,50 +404,15 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   margin: 0;
   padding: 10px 12px 12px;
   overflow: auto;
-  color: var(--text);
-  min-height: 200px;
-  max-height: min(420px, 55vh);
-  font-size: 12px;
-  line-height: 1.45;
-}
-.preview-body.is-markdown {
   white-space: pre-wrap;
   word-break: break-word;
   font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  min-height: 200px;
+  max-height: min(420px, 55vh);
 }
-.base-preview { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.base-meta { display: flex; flex-wrap: wrap; gap: 4px; }
-.base-meta-pill {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: #333;
-  color: var(--muted);
-  border: 1px solid var(--border);
-}
-.base-meta-warn { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.08); }
-.base-table-wrap { overflow: auto; max-height: min(380px, 50vh); border: 1px solid var(--border); border-radius: 8px; }
-.base-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-.base-table th,
-.base-table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-}
-.base-table th {
-  position: sticky;
-  top: 0;
-  background: #262626;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.base-table tbody tr:hover { background: rgba(124, 58, 237, 0.06); }
-.base-table td { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
 .modal-header-actions {
   display: flex;
   align-items: center;

@@ -16,7 +16,6 @@ import {
 } from "./notebook-navigator.js";
 import { openNavigatorShortcutItem } from "./shortcut-opener.js";
 import { fetchShortcutFileContent } from "./shortcut-file.js";
-import { renderBaseTableHtml } from "./base-render.js";
 
 const els = {
   modeBadge: document.getElementById("modeBadge"),
@@ -397,11 +396,9 @@ function openPreviewModalShell(title, path) {
   els.previewModal.setAttribute("aria-hidden", "false");
   els.previewModalTitle.textContent = title;
   els.previewModalPath.textContent = path || "";
-  els.previewBody.innerHTML = "";
-  els.previewBody.className = "preview-body";
+  els.previewBody.textContent = "";
   els.previewError.hidden = true;
   els.previewLoading.hidden = false;
-  els.previewLoading.textContent = "Laden via Ignis…";
   lastPreviewFile = path ? { path, title } : null;
   els.btnPreviewPopout.disabled = !path;
 }
@@ -416,7 +413,6 @@ function closePreviewModal() {
 function showNonFileShortcutPreview(item) {
   openPreviewModalShell(item.label, item.subtitle);
   els.previewLoading.hidden = true;
-  els.previewBody.className = "preview-body is-markdown";
   els.previewBody.textContent =
     `Dit is een ${shortcutKindLabel(item.kind)}-snelkoppeling, geen enkel Markdown-bestand.\n\n` +
     `${item.subtitle}\n\n` +
@@ -435,23 +431,8 @@ async function previewShortcutItem(item) {
       showNonFileShortcutPreview(item);
       return;
     }
-    if (result.kind === "base") {
-      els.previewModalPath.textContent = result.path;
-      const rendered = await withPermission((s) =>
-        renderBaseTableHtml(s, result.content, result.path, (done, total) => {
-          els.previewLoading.textContent = `Base opbouwen… ${done}/${total}`;
-        }),
-      );
-      els.previewLoading.hidden = true;
-      els.previewBody.innerHTML = rendered.html;
-      setStatus("info", `Base “${rendered.viewName}”: ${rendered.rowCount} rijen.`);
-      lastPreviewFile = { path: result.path, title: result.title };
-      els.btnPreviewPopout.disabled = false;
-      return;
-    }
     els.previewLoading.hidden = true;
     els.previewModalPath.textContent = result.path;
-    els.previewBody.className = "preview-body is-markdown";
     els.previewBody.textContent = result.content;
     lastPreviewFile = { path: result.path, title: result.title };
     els.btnPreviewPopout.disabled = false;
@@ -459,8 +440,7 @@ async function previewShortcutItem(item) {
     els.previewLoading.hidden = true;
     els.previewError.hidden = false;
     els.previewError.textContent = formatError(e);
-    els.previewBody.innerHTML = "";
-  els.previewBody.className = "preview-body";
+    els.previewBody.textContent = "";
     lastPreviewFile = null;
     els.btnPreviewPopout.disabled = true;
   }
